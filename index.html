@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>정밀 지구본 기반 계절 변화 시뮬레이터</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #030712;
+      color: #ffffff;
+      font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+    #canvas-container {
+      flex: 1 1 auto;
+      width: 100%;
+      height: calc(100vh - 65px);
+      position: relative;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    #controls {
+      flex: 0 0 65px;
+      height: 65px;
+      width: 100%;
+      background: #0f172a;
+      border-top: 1.5px solid #334155;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 15px;
+      z-index: 10;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .ctrl-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13.5px;
+    }
+    .divider {
+      width: 1px;
+      height: 28px;
+      background-color: #334155;
+      margin: 0 4px;
+    }
+    input[type=range] {
+      width: 130px;
+      cursor: pointer;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 7px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12.5px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    button:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+    .toggle-btn { background: #059669; }
+    .toggle-btn:hover { background: #047857; }
+    .season-btn { background: #334155; }
+    .season-btn:hover { background: #475569; }
+    .all-seasons-btn { background: #8b5cf6; }
+    .all-seasons-btn:hover { background: #7c3aed; }
+    .all-seasons-btn.active {
+      background: #ec4899;
+      box-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
+    }
+
+    #labels {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 12px;
+      color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(4px);
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(51, 65, 85, 0.7);
+      line-height: 1.45;
+      max-width: 320px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      z-index: 5;
+    }
+    .label-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .label-content {
+      margin-top: 4px;
+    }
+    .fold-btn {
+      background: transparent;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .fold-btn:hover {
+      background: #1e293b;
+      color: #ffffff;
+      transform: none;
+    }
+    .notice-text {
+      color: #f59e0b;
+      font-size: 10.5px;
+      margin-top: 3px;
+      display: block;
+      line-height: 1.35;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10.5px;
+      font-weight: bold;
+      margin-left: 2px;
+    }
+    .badge-persp { background: #0284c7; }
+    .badge-ortho { background: #d97706; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <div id="canvas-container">
+    <div id="labels">
+      <div class="label-header" onclick="toggleNotice()">
+        <b>🌏 계절의 변화 관찰</b>
+        <button id="foldBtn" class="fold-btn">접기</button>
+      </div>
+      <div id="noticeBody" class="label-content">
+        • 드래그: 3D 회전 | 휠: 확대·축소<br>
+        • 시점: <span id="camModeBadge" class="badge badge-persp">원근(Persp)</span>
+        <span class="notice-text">※ 실제 크기·거리는 축척을 달리 표현함.</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div class="ctrl-group">
+      <label for="tiltSlider">자전축 기울기: <strong id="tiltVal" style="color: #38bdf8;">23.5</strong>°</label>
+      <input type="range" id="tiltSlider" min="0" max="90" step="0.5" value="23.5">
+      <button onclick="setTilt(0)">0° (직각)</button>
+      <button onclick="setTilt(23.5)">23.5° (실제)</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="ctrl-group">
+      <button id="camModeBtn" class="toggle-btn" onclick="toggleCameraMode()">직교(Ortho) 전환</button>
+      <button id="playBtn" onclick="togglePlay()">공전 일시정지</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="ctrl-group">
+      <button class="season-btn" onclick="moveToSeason(Math.PI / 2)">여름 (하지)</button>
+      <button class="season-btn" onclick="moveToSeason(3 * Math.PI / 2)">겨울 (동지)</button>
+      <button class="season-btn" onclick="moveToSeason(Math.PI)">봄 (춘분)</button>
+      <button class="season-btn" onclick="moveToSeason(0)">가을 (추분)</button>
+      <!-- 사계절 동시 보기 버튼 -->
+      <button id="allSeasonsBtn" class="all-seasons-btn" onclick="toggleAllSeasons()">✨ 사계절 동시 보기</button>
+    </div>
+  </div>
+
+  <script>
+    const container = document.getElementById('canvas-container');
+    const tiltSlider = document.getElementById('tiltSlider');
+    const tiltVal = document.getElementById('tiltVal');
+    const playBtn = document.getElementById('playBtn');
+    const camModeBtn = document.getElementById('camModeBtn');
+    const camModeBadge = document.getElementById('camModeBadge');
+    const allSeasonsBtn = document.getElementById('allSeasonsBtn');
+    const noticeBody = document.getElementById('noticeBody');
+    const foldBtn = document.getElementById('foldBtn');
+
+    let isPlaying = true;
+    let orbitAngle = Math.PI / 2;
+    let tiltDegree = 23.5;
+    const orbitRadius = 46;
+    let isOrtho = false;
+    let isNoticeFolded = false;
+    let isAllSeasonsMode = false;
+
+    window.toggleNotice = function() {
+      isNoticeFolded = !isNoticeFolded;
+      noticeBody.style.display = isNoticeFolded ? 'none' : 'block';
+      foldBtn.innerText = isNoticeFolded ? '펼치기' : '접기';
+    };
+
+    // 1. Scene & Renderer
+    const scene = new THREE.Scene();
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+    container.appendChild(renderer.domElement);
+
+    // 2. Dual Camera
+    function getContainerSize() {
+      const rect = container.getBoundingClientRect();
+      const w = Math.max(rect.width, 1);
+      const h = Math.max(rect.height, 1);
+      return { width: w, height: h, aspect: w / h };
+    }
+
+    const initSize = getContainerSize();
+    const persCamera = new THREE.PerspectiveCamera(18, initSize.aspect, 5, 2000);
+    persCamera.position.set(0, 65, 175);
+
+    const orthoFrustum = 38;
+    const orthoCamera = new THREE.OrthographicCamera(
+      -orthoFrustum * initSize.aspect, orthoFrustum * initSize.aspect,
+      orthoFrustum, -orthoFrustum,
+      5, 2000
+    );
+    orthoCamera.position.set(0, 65, 175);
+
+    let activeCamera = persCamera;
+
+    let controls = new THREE.OrbitControls(activeCamera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.maxPolarAngle = Math.PI / 2 - 0.01;
+
+    function resizeRenderer() {
+      const size = getContainerSize();
+      renderer.setSize(size.width, size.height, false);
+
+      persCamera.aspect = size.aspect;
+      persCamera.updateProjectionMatrix();
+
+      orthoCamera.left = -orthoFrustum * size.aspect;
+      orthoCamera.right = orthoFrustum * size.aspect;
+      orthoCamera.top = orthoFrustum;
+      orthoCamera.bottom = -orthoFrustum;
+      orthoCamera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resizeRenderer);
+    setTimeout(resizeRenderer, 50);
+
+    function updateCameraSettings() {
+      controls.object = activeCamera;
+      activeCamera.lookAt(0, 0, 0);
+      controls.update();
+    }
+
+    // 3. 별빛 배경
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 1800;
+    const starPositions = [];
+    for (let i = 0; i < starCount * 3; i++) {
+      starPositions.push((Math.random() - 0.5) * 800);
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.9 });
+    scene.add(new THREE.Points(starGeo, starMat));
+
+    // 4. 공전 궤도
+    class OrbitCurve extends THREE.Curve {
+      constructor(radius) {
+        super();
+        this.radius = radius;
+      }
+      getPoint(t) {
+        const u = t * 2 * Math.PI;
+        return new THREE.Vector3(this.radius * Math.cos(u), 0, this.radius * Math.sin(u));
+      }
+    }
+    const orbitCurvePath = new OrbitCurve(orbitRadius);
+    const orbitGeo = new THREE.TubeGeometry(orbitCurvePath, 160, 0.22, 8, true);
+    const orbitMat = new THREE.MeshBasicMaterial({
+      color: 0x60a5fa,
+      transparent: true,
+      opacity: 0.8,
+      depthTest: true,
+      depthWrite: true
+    });
+    const orbitMesh = new THREE.Mesh(orbitGeo, orbitMat);
+    scene.add(orbitMesh);
+
+    // 5. 태양
+    const textureLoader = new THREE.TextureLoader();
+    const sunTexture = textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg');
+    const sunGeo = new THREE.SphereGeometry(8.5, 64, 64);
+    const sunMat = new THREE.MeshBasicMaterial({ map: sunTexture, color: 0xffea75 });
+    const sunMesh = new THREE.Mesh(sunGeo, sunMat);
+    scene.add(sunMesh);
+
+    const canvasCorona = document.createElement('canvas');
+    canvasCorona.width = 128;
+    canvasCorona.height = 128;
+    const ctxCorona = canvasCorona.getContext('2d');
+    const grad = ctxCorona.createRadialGradient(64, 64, 18, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255, 235, 130, 1)');
+    grad.addColorStop(0.35, 'rgba(255, 140, 20, 0.65)');
+    grad.addColorStop(1, 'rgba(255, 60, 0, 0)');
+    ctxCorona.fillStyle = grad;
+    ctxCorona.fillRect(0, 0, 128, 128);
+    const coronaTex = new THREE.CanvasTexture(canvasCorona);
+    const coronaMat = new THREE.SpriteMaterial({ map: coronaTex, color: 0xffaa33, blending: THREE.AdditiveBlending, depthWrite: false });
+    const coronaSprite = new THREE.Sprite(coronaMat);
+    coronaSprite.scale.set(38, 38, 1);
+    scene.add(coronaSprite);
+
+    const sunLight = new THREE.PointLight(0xffffff, 2.7, 500, 0.3);
+    scene.add(sunLight);
+    scene.add(new THREE.AmbientLight(0x2d3748, 0.65));
+
+    // 6. 지구 생성 팩토리 (메인 지구 + 4계절 고정 지구용 공통 함수)
+    const earthMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
+    const earthNormal = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
+    const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
+
+    const earthRadius = 5.2;
+    const axisLength = 18.0;
+
+    function createEarthUnit(labelText) {
+      const pivot = new THREE.Group();
+      const tiltGroup = new THREE.Group();
+      pivot.add(tiltGroup);
+
+      const earthGeo = new THREE.SphereGeometry(earthRadius, 128, 128);
+      const earthMat = new THREE.MeshPhongMaterial({
+        map: earthMap,
+        normalMap: earthNormal,
+        specularMap: earthSpecular,
+        specular: new THREE.Color(0x333333),
+        shininess: 18,
+        depthTest: true,
+        depthWrite: true
+      });
+      const mesh = new THREE.Mesh(earthGeo, earthMat);
+      mesh.scale.set(1, 1, 1);
+      tiltGroup.add(mesh);
+
+      // 적도선
+      const eqCurve = new THREE.EllipseCurve(0, 0, earthRadius + 0.04, earthRadius + 0.04, 0, 2 * Math.PI, false, 0);
+      const eqPoints = eqCurve.getPoints(96);
+      const eqGeo = new THREE.BufferGeometry().setFromPoints(eqPoints);
+      const eqMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2, depthTest: true });
+      const equator = new THREE.Line(eqGeo, eqMat);
+      equator.rotation.x = Math.PI / 2;
+      tiltGroup.add(equator);
+
+      // 자전축
+      const axisGeo = new THREE.CylinderGeometry(0.12, 0.12, axisLength, 16);
+      const axisMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, depthTest: true });
+      const axis = new THREE.Mesh(axisGeo, axisMat);
+      tiltGroup.add(axis);
+
+      // 북극 N 라벨
+      const canvasN = document.createElement('canvas');
+      canvasN.width = 64;
+      canvasN.height = 64;
+      const ctxN = canvasN.getContext('2d');
+      ctxN.fillStyle = '#22c55e';
+      ctxN.font = 'bold 50px sans-serif';
+      ctxN.textAlign = 'center';
+      ctxN.textBaseline = 'middle';
+      ctxN.fillText('N', 32, 32);
+      const nTex = new THREE.CanvasTexture(canvasN);
+      const nSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: nTex, depthTest: false }));
+      nSprite.position.set(0, axisLength / 2 + 1.2, 0);
+      nSprite.scale.set(2.8, 2.8, 1);
+      tiltGroup.add(nSprite);
+
+      // 계절 텍스트 라벨 (사계절 동시 보기용)
+      let labelSprite = null;
+      if (labelText) {
+        const cLabel = document.createElement('canvas');
+        cLabel.width = 256;
+        cLabel.height = 64;
+        const ctxL = cLabel.getContext('2d');
+        ctxL.fillStyle = '#f8fafc';
+        ctxL.font = 'bold 36px sans-serif';
+        ctxL.textAlign = 'center';
+        ctxL.textBaseline = 'middle';
+        ctxL.shadowColor = '#000000';
+        ctxL.shadowBlur = 6;
+        ctxL.fillText(labelText, 128, 32);
+        const lTex = new THREE.CanvasTexture(cLabel);
+        labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, depthTest: false }));
+        labelSprite.position.set(0, -earthRadius - 3.8, 0);
+        labelSprite.scale.set(10, 2.5, 1);
+        pivot.add(labelSprite);
+      }
+
+      return { pivot, tiltGroup, mesh };
+    }
+
+    // 메인 회전 지구
+    const mainEarth = createEarthUnit(null);
+    scene.add(mainEarth.pivot);
+
+    // 사계절 고정 4개 지구 그룹
+    const fourSeasonsGroup = new THREE.Group();
+    scene.add(fourSeasonsGroup);
+    fourSeasonsGroup.visible = false; // 기본은 숨김
+
+    const seasonConfigs = [
+      { angle: Math.PI / 2, label: "여름 (하지)" },
+      { angle: 3 * Math.PI / 2, label: "겨울 (동지)" },
+      { angle: Math.PI, label: "봄 (춘분)" },
+      { angle: 0, label: "가을 (추분)" }
+    ];
+
+    const staticEarths = seasonConfigs.map(cfg => {
+      const unit = createEarthUnit(cfg.label);
+      unit.pivot.position.x = orbitRadius * Math.cos(cfg.angle);
+      unit.pivot.position.z = orbitRadius * Math.sin(cfg.angle);
+      fourSeasonsGroup.add(unit.pivot);
+      return unit;
+    });
+
+    // 모든 지구 자전축 기울기 일괄 적용
+    function applyAllTilts(deg) {
+      const rad = -THREE.MathUtils.degToRad(deg);
+      mainEarth.tiltGroup.rotation.z = rad;
+      staticEarths.forEach(u => u.tiltGroup.rotation.z = rad);
+    }
+    applyAllTilts(tiltDegree);
+
+    // 컨트롤 이벤트
+    tiltSlider.addEventListener('input', (e) => {
+      tiltDegree = parseFloat(e.target.value);
+      tiltVal.innerText = tiltDegree;
+      applyAllTilts(tiltDegree);
+    });
+
+    window.setTilt = function(val) {
+      tiltDegree = val;
+      tiltSlider.value = val;
+      tiltVal.innerText = val;
+      applyAllTilts(val);
+    };
+
+    window.togglePlay = function() {
+      if (isAllSeasonsMode) {
+        // 사계절 모드 해제 후 단일 재생으로 전환
+        toggleAllSeasons();
+      }
+      isPlaying = !isPlaying;
+      playBtn.innerText = isPlaying ? "공전 일시정지" : "공전 시작";
+    };
+
+    window.moveToSeason = function(angle) {
+      if (isAllSeasonsMode) {
+        toggleAllSeasons(); // 단일 모드로 복귀
+      }
+      orbitAngle = angle;
+    };
+
+    // 사계절 동시 보기 토글
+    window.toggleAllSeasons = function() {
+      isAllSeasonsMode = !isAllSeasonsMode;
+      if (isAllSeasonsMode) {
+        isPlaying = false;
+        playBtn.innerText = "공전 시작";
+        mainEarth.pivot.visible = false;
+        fourSeasonsGroup.visible = true;
+        allSeasonsBtn.classList.add('active');
+        allSeasonsBtn.innerText = "단일 공전 보기";
+      } else {
+        mainEarth.pivot.visible = true;
+        fourSeasonsGroup.visible = false;
+        allSeasonsBtn.classList.remove('active');
+        allSeasonsBtn.innerText = "✨ 사계절 동시 보기";
+      }
+    };
+
+    window.toggleCameraMode = function() {
+      isOrtho = !isOrtho;
+      if (isOrtho) {
+        orthoCamera.position.copy(persCamera.position);
+        orthoCamera.quaternion.copy(persCamera.quaternion);
+        activeCamera = orthoCamera;
+        camModeBtn.innerText = "원근(Persp) 전환";
+        camModeBadge.className = "badge badge-ortho";
+        camModeBadge.innerText = "직교(Ortho)";
+      } else {
+        persCamera.position.copy(orthoCamera.position);
+        persCamera.quaternion.copy(orthoCamera.quaternion);
+        activeCamera = persCamera;
+        camModeBtn.innerText = "직교(Ortho) 전환";
+        camModeBadge.className = "badge badge-persp";
+        camModeBadge.innerText = "원근(Persp)";
+      }
+      updateCameraSettings();
+    };
+
+    // 애니메이션 렌더 루프
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+
+      // 공전 (단일 지구 모드일 때만 실행)
+      if (isPlaying && !isAllSeasonsMode) {
+        orbitAngle += 0.1 * delta;
+        if (orbitAngle > 2 * Math.PI) orbitAngle -= 2 * Math.PI;
+      }
+      mainEarth.pivot.position.x = orbitRadius * Math.cos(orbitAngle);
+      mainEarth.pivot.position.z = orbitRadius * Math.sin(orbitAngle);
+
+      // 자전 속도 (실제 천문 관측 비율)
+      const earthRotationSpeed = 0.6;
+      mainEarth.mesh.rotation.y += earthRotationSpeed * delta;
+      staticEarths.forEach(u => u.mesh.rotation.y += earthRotationSpeed * delta);
+
+      // 태양 자전
+      const sunRotationSpeed = earthRotationSpeed / 25;
+      sunMesh.rotation.y += sunRotationSpeed * delta;
+
+      controls.update();
+      renderer.render(scene, activeCamera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
