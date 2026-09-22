@@ -4,168 +4,71 @@
   <meta charset="UTF-8">
   <title>정밀 지구본 기반 계절 변화 시뮬레이터</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
-      width: 100%;
-      height: 100%;
-      background-color: #010409;
-      color: #ffffff;
+      width: 100%; height: 100%;
+      background-color: #010409; color: #ffffff;
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      user-select: none;
+      overflow: hidden; display: flex; flex-direction: column; user-select: none;
     }
     #canvas-container {
-      flex: 1 1 auto;
-      width: 100%;
-      height: calc(100vh - 65px);
-      position: relative;
-      overflow: hidden;
+      flex: 1 1 auto; width: 100%; height: calc(100vh - 65px);
+      position: relative; overflow: hidden;
     }
-    canvas {
-      display: block;
-      width: 100% !important;
-      height: 100% !important;
-    }
+    canvas { display: block; width: 100% !important; height: 100% !important; }
     #controls {
-      flex: 0 0 65px;
-      height: 65px;
-      width: 100%;
-      background: #0f172a;
-      border-top: 1.5px solid #334155;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 0 15px;
-      z-index: 10;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
-      overflow-x: auto;
-      white-space: nowrap;
+      flex: 0 0 65px; height: 65px; width: 100%;
+      background: #0f172a; border-top: 1.5px solid #334155;
+      display: flex; flex-direction: row; align-items: center; justify-content: center;
+      gap: 10px; padding: 0 15px; z-index: 10;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.6); overflow-x: auto; white-space: nowrap;
     }
-    .ctrl-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 13.5px;
-    }
-    .divider {
-      width: 1px;
-      height: 28px;
-      background-color: #334155;
-      margin: 0 4px;
-    }
-    input[type=range] {
-      width: 130px;
-      cursor: pointer;
-    }
+    .ctrl-group { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; }
+    .divider { width: 1px; height: 28px; background-color: #334155; margin: 0 4px; }
+    input[type=range] { width: 130px; cursor: pointer; }
     button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 7px 11px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 12.5px;
-      transition: all 0.2s ease;
-      white-space: nowrap;
+      background: #2563eb; color: white; border: none; padding: 7px 11px;
+      border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12.5px;
+      transition: all 0.2s ease; white-space: nowrap;
     }
-    button:hover {
-      background: #1d4ed8;
-      transform: translateY(-1px);
-    }
+    button:hover { background: #1d4ed8; transform: translateY(-1px); }
     .toggle-btn { background: #059669; }
     .toggle-btn:hover { background: #047857; }
     .season-btn { background: #334155; }
     .season-btn:hover { background: #475569; }
     .all-seasons-btn { background: #8b5cf6; }
     .all-seasons-btn:hover { background: #7c3aed; }
-    .all-seasons-btn.active {
-      background: #ec4899;
-      box-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
+    .all-seasons-btn.active { background: #ec4899; box-shadow: 0 0 10px rgba(236, 72, 153, 0.6); }
+
+    /* 좌측 상단 안내창 */
+    #labels {
+      position: absolute; top: 6px; left: 6px; font-size: 12px; color: #f1f5f9;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px);
+      padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(51, 65, 85, 0.8);
+      line-height: 1.5; max-width: 320px; box-shadow: 0 4px 14px rgba(0,0,0,0.6); z-index: 5;
+    }
+    .label-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
+    .header-title-box { display: flex; flex-direction: column; gap: 2px; }
+    .label-content { margin-top: 5px; border-top: 1px solid #1e293b; padding-top: 5px; }
+    .creator-tag { font-size: 10.5px; color: #38bdf8; font-weight: 600; }
+    .fold-btn {
+      background: transparent; border: 1px solid #475569; color: #94a3b8;
+      font-size: 10px; padding: 1px 5px; border-radius: 4px;
     }
 
-    #labels {
-      position: absolute;
-      top: 6px;
-      left: 6px;
-      font-size: 12px;
-      color: #f1f5f9;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(6px);
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid rgba(51, 65, 85, 0.8);
-      line-height: 1.5;
-      max-width: 330px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
-      z-index: 5;
+    /* 우측 상단: [핵심] 태양 남중고도 및 에너지 밀도 HUD 패널 */
+    #solarHUD {
+      position: absolute; top: 6px; right: 6px; font-size: 12px; color: #f8fafc;
+      background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
+      padding: 10px 14px; border-radius: 8px; border: 1.5px solid #38bdf8;
+      width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.7); z-index: 5;
     }
-    .label-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      cursor: pointer;
-    }
-    .header-title-box {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .label-content {
-      margin-top: 5px;
-      border-top: 1px solid #1e293b;
-      padding-top: 5px;
-    }
-    .creator-tag {
-      font-size: 10.5px;
-      color: #38bdf8;
-      font-weight: 600;
-      letter-spacing: 0.3px;
-    }
-    .fold-btn {
-      background: transparent;
-      border: 1px solid #475569;
-      color: #94a3b8;
-      font-size: 10px;
-      padding: 1px 5px;
-      border-radius: 4px;
-      line-height: 1;
-    }
-    .fold-btn:hover {
-      background: #1e293b;
-      color: #ffffff;
-      transform: none;
-    }
-    .notice-text {
-      color: #f59e0b;
-      font-size: 10.5px;
-      margin-top: 3px;
-      display: block;
-      line-height: 1.35;
-    }
-    .notice-highlight {
-      color: #38bdf8;
-      font-weight: bold;
-    }
-    .badge {
-      display: inline-block;
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-size: 10.5px;
-      font-weight: bold;
-      margin-left: 2px;
-    }
-    .badge-persp { background: #0284c7; }
-    .badge-ortho { background: #d97706; }
+    .hud-title { font-weight: bold; font-size: 13px; color: #38bdf8; margin-bottom: 6px; border-bottom: 1px solid #334155; padding-bottom: 4px; display: flex; justify-content: space-between; }
+    .hud-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .hud-val { font-weight: bold; }
+    .hud-bar-bg { width: 100%; height: 10px; background: #1e293b; border-radius: 5px; overflow: hidden; margin-top: 4px; }
+    .hud-bar-fill { height: 100%; width: 50%; background: linear-gradient(90deg, #3b82f6, #f59e0b, #ef4444); transition: width 0.1s linear; }
+    .hud-desc { font-size: 10.5px; color: #cbd5e1; margin-top: 6px; line-height: 1.35; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -176,19 +79,38 @@
     <div id="labels">
       <div class="label-header" onclick="toggleNotice()">
         <div class="header-title-box">
-          <b>🌏 계절의 변화 관찰 (북반구 기준)</b>
+          <b>🌏 계절의 변화 (북반구 대한민국 기준)</b>
           <span class="creator-tag">✨ Made by AmazingGrace14</span>
         </div>
         <button id="foldBtn" class="fold-btn">접기</button>
       </div>
       <div id="noticeBody" class="label-content">
+        • 🔴 <b>빨간 핀</b>: 대한민국 위치 (위도 37.5°N)<br>
+        • 🟡 <b>노란 광선</b>: 태양 직사광선 입사각<br>
         • 드래그: 3D 회전 | 휠: 확대·축소<br>
-        • 시점: <span id="camModeBadge" class="badge badge-persp">원근(Persp)</span>
-        <span class="notice-text">
-          • <span class="notice-highlight">사계절 명칭은 '북반구' 기준</span>입니다.<br>
-          • 북극 상공 기준 반시계 방향(서→동) 공전<br>
-          ※ 실제 크기·거리는 축척을 달리 표현함.
-        </span>
+        <span style="color:#f59e0b; font-size:10.5px;">※ 북극 상공 기준 반시계 방향(서→동) 공전</span>
+      </div>
+    </div>
+
+    <!-- 우측 상단 실시간 남중고도 및 에너지 밀도 HUD -->
+    <div id="solarHUD">
+      <div class="hud-title">
+        <span>☀️ 남중고도 및 태양 에너지</span>
+        <span id="hudSeasonBadge" style="color:#facc15;">여름 (하지)</span>
+      </div>
+      <div class="hud-row">
+        <span>태양 남중고도:</span>
+        <span id="altitudeVal" class="hud-val" style="color:#38bdf8;">76.0° (높음)</span>
+      </div>
+      <div class="hud-row">
+        <span>단위면적당 에너지:</span>
+        <span id="energyVal" class="hud-val" style="color:#f87171;">97% (매우 강함)</span>
+      </div>
+      <div class="hud-bar-bg">
+        <div id="energyBar" class="hud-bar-fill" style="width: 97%;"></div>
+      </div>
+      <div id="hudExplain" class="hud-desc">
+        햇빛이 수직에 가깝게 내리쬐어 좁은 면적에 많은 에너지가 집중됩니다 (기온 높음).
       </div>
     </div>
   </div>
@@ -225,10 +147,16 @@
     const tiltVal = document.getElementById('tiltVal');
     const playBtn = document.getElementById('playBtn');
     const camModeBtn = document.getElementById('camModeBtn');
-    const camModeBadge = document.getElementById('camModeBadge');
     const allSeasonsBtn = document.getElementById('allSeasonsBtn');
     const noticeBody = document.getElementById('noticeBody');
     const foldBtn = document.getElementById('foldBtn');
+
+    // HUD 요소
+    const altitudeVal = document.getElementById('altitudeVal');
+    const energyVal = document.getElementById('energyVal');
+    const energyBar = document.getElementById('energyBar');
+    const hudExplain = document.getElementById('hudExplain');
+    const hudSeasonBadge = document.getElementById('hudSeasonBadge');
 
     let isPlaying = true;
     let orbitAngle = Math.PI / 2;
@@ -246,14 +174,13 @@
 
     // 1. Scene & Renderer
     const scene = new THREE.Scene();
-    
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
-    // 2. Dual Camera (18도 망원 화각)
+    // 2. Dual Camera
     function getContainerSize() {
       const rect = container.getBoundingClientRect();
       const w = Math.max(rect.width, 1);
@@ -268,11 +195,9 @@
     const orthoFrustum = 38;
     const orthoCamera = new THREE.OrthographicCamera(
       -orthoFrustum * initSize.aspect, orthoFrustum * initSize.aspect,
-      orthoFrustum, -orthoFrustum,
-      5, 4500
+      orthoFrustum, -orthoFrustum, 5, 4500
     );
     orthoCamera.position.set(0, 65, 175);
-
     let activeCamera = persCamera;
 
     let controls = new THREE.OrbitControls(activeCamera, renderer.domElement);
@@ -283,10 +208,8 @@
     function resizeRenderer() {
       const size = getContainerSize();
       renderer.setSize(size.width, size.height, false);
-
       persCamera.aspect = size.aspect;
       persCamera.updateProjectionMatrix();
-
       orthoCamera.left = -orthoFrustum * size.aspect;
       orthoCamera.right = orthoFrustum * size.aspect;
       orthoCamera.top = orthoFrustum;
@@ -302,181 +225,70 @@
       controls.update();
     }
 
-    // =========================================================================
-    // 3. 은하수 스카이돔 + 5,000개 분광형 별빛 시스템
-    // =========================================================================
+    // 3. 우주 배경 돔 & 별빛
     function createMilkyWayTexture() {
       const c = document.createElement('canvas');
-      c.width = 2048;
-      c.height = 1024;
+      c.width = 2048; c.height = 1024;
       const ctx = c.getContext('2d');
-
       ctx.fillStyle = '#02040a';
       ctx.fillRect(0, 0, c.width, c.height);
-
       ctx.save();
       ctx.translate(c.width / 2, c.height / 2);
       ctx.rotate(-Math.PI / 7);
-
       const clouds = [
         { color: 'rgba(30, 58, 138, 0.45)', w: 1600, h: 260, y: 0 },
         { color: 'rgba(56, 189, 248, 0.28)', w: 1200, h: 180, y: -25 },
         { color: 'rgba(147, 51, 234, 0.32)', w: 1400, h: 220, y: 20 },
-        { color: 'rgba(236, 72, 153, 0.22)', w: 900,  h: 150, y: -10 },
-        { color: 'rgba(255, 255, 255, 0.25)', w: 1500, h: 90,  y: 0 }
+        { color: 'rgba(236, 72, 153, 0.22)', w: 900,  h: 150, y: -10 }
       ];
-
       clouds.forEach(cl => {
         const radGrad = ctx.createRadialGradient(0, cl.y, 10, 0, cl.y, cl.w / 2);
         radGrad.addColorStop(0, cl.color);
-        radGrad.addColorStop(0.5, cl.color.replace(/[\d\.]+\)$/, '0.08)'));
         radGrad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = radGrad;
         ctx.beginPath();
         ctx.ellipse(0, cl.y, cl.w / 2, cl.h / 2, 0, 0, Math.PI * 2);
         ctx.fill();
       });
-
-      for (let i = 0; i < 4000; i++) {
-        const x = (Math.random() - 0.5) * 1700;
-        const y = (Math.random() - 0.5) * 220 + (Math.random() - 0.5) * 80;
-        const size = Math.random() * 1.5;
-        const alpha = Math.random() * 0.7 + 0.15;
-        ctx.fillStyle = `rgba(240, 245, 255, ${alpha})`;
-        ctx.fillRect(x, y, size, size);
-      }
       ctx.restore();
-
       return new THREE.CanvasTexture(c);
     }
-
-    const universeSkyGeo = new THREE.SphereGeometry(1500, 48, 48);
-    const universeSkyMat = new THREE.MeshBasicMaterial({
-      map: createMilkyWayTexture(),
-      side: THREE.BackSide,
-      depthWrite: false
-    });
-    const universeSkyMesh = new THREE.Mesh(universeSkyGeo, universeSkyMat);
+    const universeSkyMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1500, 48, 48),
+      new THREE.MeshBasicMaterial({ map: createMilkyWayTexture(), side: THREE.BackSide, depthWrite: false })
+    );
     scene.add(universeSkyMesh);
 
-    function createGlowStarTexture() {
-      const c = document.createElement('canvas');
-      c.width = 64;
-      c.height = 64;
-      const ctx = c.getContext('2d');
-      const grad = ctx.createRadialGradient(32, 32, 1, 32, 32, 30);
-      grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      grad.addColorStop(0.2, 'rgba(240, 248, 255, 0.95)');
-      grad.addColorStop(0.5, 'rgba(180, 220, 255, 0.4)');
-      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 64, 64);
-      return new THREE.CanvasTexture(c);
-    }
-    const starGlowTex = createGlowStarTexture();
-
-    const spectralColors = [
-      new THREE.Color(0x9db4ff),
-      new THREE.Color(0xbbccff),
-      new THREE.Color(0xf8f9ff),
-      new THREE.Color(0xfff4e8),
-      new THREE.Color(0xffddb4),
-      new THREE.Color(0xffb896)
-    ];
-
-    const starLayers = [
-      { count: 3200, size: 2.0, opacity: 0.75, speed: 2.5 },
-      { count: 1300, size: 3.4, opacity: 0.85, speed: 3.8 },
-      { count: 400,  size: 5.5, opacity: 0.95, speed: 5.0 },
-      { count: 100,  size: 8.0, opacity: 1.0,  speed: 6.2 }
-    ];
-
-    const starGroups = [];
-
-    starLayers.forEach(layer => {
-      const geo = new THREE.BufferGeometry();
-      const pos = new Float32Array(layer.count * 3);
-      const col = new Float32Array(layer.count * 3);
-
-      for (let i = 0; i < layer.count; i++) {
-        const r = 400 + Math.random() * 650;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        pos[i * 3 + 2] = r * Math.cos(phi);
-
-        const colorPick = spectralColors[Math.floor(Math.random() * spectralColors.length)];
-        col[i * 3]     = colorPick.r;
-        col[i * 3 + 1] = colorPick.g;
-        col[i * 3 + 2] = colorPick.b;
-      }
-
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-
-      const mat = new THREE.PointsMaterial({
-        size: layer.size,
-        sizeAttenuation: false,
-        map: starGlowTex,
-        transparent: true,
-        opacity: layer.opacity,
-        vertexColors: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-      });
-
-      const pMesh = new THREE.Points(geo, mat);
-      scene.add(pMesh);
-      starGroups.push({ mesh: pMesh, mat: mat, baseOpacity: layer.opacity, baseSize: layer.size, speed: layer.speed });
-    });
-
-    // =========================================================================
     // 4. 공전 궤도
-    // =========================================================================
     class OrbitCurve extends THREE.Curve {
-      constructor(radius) {
-        super();
-        this.radius = radius;
-      }
+      constructor(radius) { super(); this.radius = radius; }
       getPoint(t) {
         const u = t * 2 * Math.PI;
         return new THREE.Vector3(this.radius * Math.cos(u), 0, this.radius * Math.sin(u));
       }
     }
-    const orbitCurvePath = new OrbitCurve(orbitRadius);
-    const orbitGeo = new THREE.TubeGeometry(orbitCurvePath, 160, 0.22, 8, true);
-    const orbitMat = new THREE.MeshBasicMaterial({
-      color: 0x60a5fa,
-      transparent: true,
-      opacity: 0.8,
-      depthTest: true,
-      depthWrite: true
-    });
-    const orbitMesh = new THREE.Mesh(orbitGeo, orbitMat);
+    const orbitMesh = new THREE.Mesh(
+      new THREE.TubeGeometry(new OrbitCurve(orbitRadius), 160, 0.22, 8, true),
+      new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.8 })
+    );
     scene.add(orbitMesh);
 
-    // =========================================================================
-    // 5. 태양 및 광원 설정 (밤 영역 실루엣 가시화)
-    // =========================================================================
+    // 5. 태양
     const textureLoader = new THREE.TextureLoader();
-    const sunTexture = textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg');
-    const sunGeo = new THREE.SphereGeometry(8.5, 64, 64);
-    const sunMat = new THREE.MeshBasicMaterial({ map: sunTexture, color: 0xffea75 });
-    const sunMesh = new THREE.Mesh(sunGeo, sunMat);
+    const sunMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(8.5, 64, 64),
+      new THREE.MeshBasicMaterial({
+        map: textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg'),
+        color: 0xffea75
+      })
+    );
     scene.add(sunMesh);
 
-    // 직사 태양광: 낮 영역을 선명하고 밝게 비춤
     const sunLight = new THREE.PointLight(0xffffff, 3.4, 550, 0.2);
     scene.add(sunLight);
+    scene.add(new THREE.AmbientLight(0x384556, 0.78));
 
-    // [개선] 밤 영역에서도 대륙/바다 윤곽이 희미하게 드러나도록 은은한 푸른빛 앰비언트 광원 강화
-    const ambientLight = new THREE.AmbientLight(0x384556, 0.78);
-    scene.add(ambientLight);
-
-    // =========================================================================
-    // 6. 지구 단위 생성기 (밤 영역 실루엣 보존 튜닝)
-    // =========================================================================
+    // 6. 지구 단위 생성기 (한국 관측 핀 + 지평면 판 + 입사광 레이저)
     const earthMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
     const earthNormal = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
     const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
@@ -484,85 +296,103 @@
     const earthRadius = 5.2;
     const axisLength = 18.0;
 
-    function createEarthUnit(labelText) {
+    function createEarthUnit(labelText, isInteractiveMain = false) {
       const pivot = new THREE.Group();
       const tiltGroup = new THREE.Group();
       pivot.add(tiltGroup);
 
-      const earthGeo = new THREE.SphereGeometry(earthRadius, 128, 128);
-      
-      // [개선] emissive 틴트를 부여하여 빛을 전혀 받지 않는 암흑 속에서도 지구 형태와 대륙 윤곽이 은은하게 식별됨
       const earthMat = new THREE.MeshPhongMaterial({
-        map: earthMap,
-        normalMap: earthNormal,
-        specularMap: earthSpecular,
-        specular: new THREE.Color(0x282828),
-        shininess: 14,
-        emissive: new THREE.Color(0x0e1320), // 밤 영역의 자연스러운 암청색 자체 실루엣 발광
-        emissiveMap: earthMap,              // 대륙과 바다 텍스처 무늬가 밤에도 은은하게 보임
-        depthTest: true,
-        depthWrite: true
+        map: earthMap, normalMap: earthNormal, specularMap: earthSpecular,
+        specular: new THREE.Color(0x282828), shininess: 14,
+        emissive: new THREE.Color(0x0e1320), emissiveMap: earthMap
       });
-      const mesh = new THREE.Mesh(earthGeo, earthMat);
-      mesh.scale.set(1, 1, 1);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(earthRadius, 128, 128), earthMat);
       tiltGroup.add(mesh);
 
       // 적도선
       const eqCurve = new THREE.EllipseCurve(0, 0, earthRadius + 0.04, earthRadius + 0.04, 0, 2 * Math.PI, false, 0);
-      const eqPoints = eqCurve.getPoints(96);
-      const eqGeo = new THREE.BufferGeometry().setFromPoints(eqPoints);
-      const eqMat = new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2, depthTest: true });
-      const equator = new THREE.Line(eqGeo, eqMat);
+      const equator = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(eqCurve.getPoints(96)),
+        new THREE.LineBasicMaterial({ color: 0xef4444, linewidth: 2 })
+      );
       equator.rotation.x = Math.PI / 2;
       tiltGroup.add(equator);
 
       // 자전축
-      const axisGeo = new THREE.CylinderGeometry(0.12, 0.12, axisLength, 16);
-      const axisMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, depthTest: true });
-      const axis = new THREE.Mesh(axisGeo, axisMat);
+      const axis = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, axisLength, 16),
+        new THREE.MeshBasicMaterial({ color: 0x22c55e })
+      );
       tiltGroup.add(axis);
 
-      // 북극 N 표식
+      // 북극 N 라벨
       const canvasN = document.createElement('canvas');
-      canvasN.width = 64;
-      canvasN.height = 64;
+      canvasN.width = 64; canvasN.height = 64;
       const ctxN = canvasN.getContext('2d');
-      ctxN.fillStyle = '#22c55e';
-      ctxN.font = 'bold 50px sans-serif';
-      ctxN.textAlign = 'center';
-      ctxN.textBaseline = 'middle';
-      ctxN.fillText('N', 32, 32);
-      const nTex = new THREE.CanvasTexture(canvasN);
-      const nSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: nTex, depthTest: false }));
+      ctxN.fillStyle = '#22c55e'; ctxN.font = 'bold 50px sans-serif';
+      ctxN.textAlign = 'center'; ctxN.textBaseline = 'middle'; ctxN.fillText('N', 32, 32);
+      const nSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvasN) }));
       nSprite.position.set(0, axisLength / 2 + 1.2, 0);
       nSprite.scale.set(2.8, 2.8, 1);
       tiltGroup.add(nSprite);
 
+      // [핵심] 대한민국 관측 지점 (위도 37.5°N) 핀 및 지평면
+      const koreaLat = THREE.MathUtils.degToRad(37.5);
+      const koreaR = earthRadius + 0.06;
+      // 기준 좌표: y는 북쪽, z축 방향이 남중 정오 자오선
+      const koreaPos = new THREE.Vector3(0, koreaR * Math.sin(koreaLat), koreaR * Math.cos(koreaLat));
+
+      const pinGroup = new THREE.Group();
+      pinGroup.position.copy(koreaPos);
+
+      // 지평면 판 (노란색 원형 판)
+      const groundPlate = new THREE.Mesh(
+        new THREE.CircleGeometry(1.2, 32),
+        new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.65 })
+      );
+      // 지평면이 지구 표면에 접하도록 회전
+      groundPlate.rotation.x = -Math.PI / 2 + koreaLat;
+      pinGroup.add(groundPlate);
+
+      // 빨간색 관측 핀 막대
+      const pinRod = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.1, 2.4, 16),
+        new THREE.MeshBasicMaterial({ color: 0xef4444 })
+      );
+      pinRod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), koreaPos.clone().normalize());
+      pinRod.position.add(koreaPos.clone().normalize().multiplyScalar(1.2));
+      pinGroup.add(pinRod);
+
+      tiltGroup.add(pinGroup);
+
+      // [선택적] 태양 직사광 레이저 선 (메인 지구용)
+      let sunBeamLine = null;
+      if (isInteractiveMain) {
+        const beamGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)]);
+        const beamMat = new THREE.LineBasicMaterial({ color: 0xfde047, linewidth: 3, transparent: true, opacity: 0.9 });
+        sunBeamLine = new THREE.Line(beamGeo, beamMat);
+        scene.add(sunBeamLine);
+      }
+
       // 계절 라벨
       if (labelText) {
         const cLabel = document.createElement('canvas');
-        cLabel.width = 300;
-        cLabel.height = 70;
+        cLabel.width = 300; cLabel.height = 70;
         const ctxL = cLabel.getContext('2d');
-        ctxL.fillStyle = '#f8fafc';
-        ctxL.font = 'bold 32px sans-serif';
-        ctxL.textAlign = 'center';
-        ctxL.textBaseline = 'middle';
-        ctxL.shadowColor = '#000000';
-        ctxL.shadowBlur = 6;
+        ctxL.fillStyle = '#f8fafc'; ctxL.font = 'bold 32px sans-serif';
+        ctxL.textAlign = 'center'; ctxL.textBaseline = 'middle';
         ctxL.fillText(labelText, 150, 35);
-        const lTex = new THREE.CanvasTexture(cLabel);
-        const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, depthTest: false }));
+        const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cLabel) }));
         labelSprite.position.set(0, -earthRadius - 3.8, 0);
         labelSprite.scale.set(11, 2.6, 1);
         pivot.add(labelSprite);
       }
 
-      return { pivot, tiltGroup, mesh };
+      return { pivot, tiltGroup, mesh, pinGroup, sunBeamLine, koreaPos };
     }
 
-    // 메인 공전 지구
-    const mainEarth = createEarthUnit(null);
+    // 메인 지구
+    const mainEarth = createEarthUnit(null, true);
     scene.add(mainEarth.pivot);
 
     // 사계절 고정 4개 지구
@@ -578,7 +408,7 @@
     ];
 
     const staticEarths = seasonConfigs.map(cfg => {
-      const unit = createEarthUnit(cfg.label);
+      const unit = createEarthUnit(cfg.label, false);
       unit.pivot.position.x = orbitRadius * Math.cos(cfg.angle);
       unit.pivot.position.z = orbitRadius * Math.sin(cfg.angle);
       fourSeasonsGroup.add(unit.pivot);
@@ -607,17 +437,13 @@
     };
 
     window.togglePlay = function() {
-      if (isAllSeasonsMode) {
-        toggleAllSeasons();
-      }
+      if (isAllSeasonsMode) toggleAllSeasons();
       isPlaying = !isPlaying;
       playBtn.innerText = isPlaying ? "공전 일시정지" : "공전 시작";
     };
 
     window.moveToSeason = function(angle) {
-      if (isAllSeasonsMode) {
-        toggleAllSeasons();
-      }
+      if (isAllSeasonsMode) toggleAllSeasons();
       orbitAngle = angle;
     };
 
@@ -627,11 +453,13 @@
         isPlaying = false;
         playBtn.innerText = "공전 시작";
         mainEarth.pivot.visible = false;
+        mainEarth.sunBeamLine.visible = false;
         fourSeasonsGroup.visible = true;
         allSeasonsBtn.classList.add('active');
         allSeasonsBtn.innerText = "단일 공전 보기";
       } else {
         mainEarth.pivot.visible = true;
+        mainEarth.sunBeamLine.visible = true;
         fourSeasonsGroup.visible = false;
         allSeasonsBtn.classList.remove('active');
         allSeasonsBtn.innerText = "✨ 사계절 동시 보기";
@@ -645,22 +473,76 @@
         orthoCamera.quaternion.copy(persCamera.quaternion);
         activeCamera = orthoCamera;
         camModeBtn.innerText = "원근(Persp) 전환";
-        camModeBadge.className = "badge badge-ortho";
-        camModeBadge.innerText = "직교(Ortho)";
       } else {
         persCamera.position.copy(orthoCamera.position);
         persCamera.quaternion.copy(orthoCamera.quaternion);
         activeCamera = persCamera;
         camModeBtn.innerText = "직교(Ortho) 전환";
-        camModeBadge.className = "badge badge-persp";
-        camModeBadge.innerText = "원근(Persp)";
       }
       updateCameraSettings();
     };
 
     // =========================================================================
-    // 7. 애니메이션 렌더 루프
+    // 7. 실시간 남중고도 및 에너지 밀도 계산 함수
     // =========================================================================
+    function updateSolarMetrics() {
+      // 하지(π/2)에서 적위 δ = +tilt, 동지(3π/2)에서 δ = -tilt
+      // orbitAngle에 따른 태양 적위 공식: declination = tilt * sin(orbitAngle)
+      const currentDeclination = tiltDegree * Math.sin(orbitAngle);
+      const lat = 37.5; // 서울 위도
+
+      // 남중고도 공식: h = 90° - 위도 + 태양적위
+      let altitude = 90 - lat + currentDeclination;
+      altitude = Math.max(0, Math.min(90, altitude));
+
+      // 단위 면적당 도달하는 태양 복사 에너지 밀도 = sin(남중고도) * 100%
+      const energyPercent = Math.max(0, Math.sin(THREE.MathUtils.degToRad(altitude)) * 100);
+
+      // HUD 업데이트
+      altitudeVal.innerText = `${altitude.toFixed(1)}° (${altitude > 65 ? '높음' : (altitude < 40 ? '낮음' : '보통')})`;
+      energyVal.innerText = `${Math.round(energyPercent)}% (${energyPercent > 85 ? '매우 강함' : (energyPercent < 60 ? '약함' : '적당함')})`;
+      energyBar.style.width = `${energyPercent}%`;
+
+      // 계절 텍스트 및 설명 업데이트
+      let seasonName = "";
+      let explainText = "";
+      const modAngle = ((orbitAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+      if (Math.abs(modAngle - Math.PI / 2) < 0.35) {
+        seasonName = "여름 (하지 부근)";
+        explainText = "태양 남중고도가 높아 햇빛이 가파르게 내리쬡니다. 좁은 면적에 많은 에너지가 집중되어 기온이 높아집니다.";
+      } else if (Math.abs(modAngle - 3 * Math.PI / 2) < 0.35) {
+        seasonName = "겨울 (동지 부근)";
+        explainText = "태양 남중고도가 낮아 햇빛이 비스듬하게 비춥니다. 에너지가 넓은 면적으로 분산되어 단위면적당 에너지가 적고 기온이 낮아집니다.";
+      } else if (Math.abs(modAngle - Math.PI) < 0.35) {
+        seasonName = "봄 (춘분 부근)";
+        explainText = "태양의 남중고도와 단위면적당 에너지가 온화하여 따뜻한 봄 날씨가 나타납니다.";
+      } else {
+        seasonName = "가을 (추분 부근)";
+        explainText = "낮과 밤의 길이가 같고 적당한 태양 에너지가 도달하여 선선한 가을 날씨가 나타납니다.";
+      }
+
+      hudSeasonBadge.innerText = seasonName;
+      hudExplain.innerText = explainText;
+
+      // 태양 직사광선 레이저 빔 위치 갱신
+      if (mainEarth.sunBeamLine && mainEarth.pivot.visible) {
+        const pinWorldPos = new THREE.Vector3();
+        mainEarth.pinGroup.getWorldPosition(pinWorldPos);
+        
+        // 태양 표면에서 한국 핀으로 꽂히는 광선
+        const sunWorldPos = new THREE.Vector3(0, 0, 0);
+        const dir = pinWorldPos.clone().sub(sunWorldPos).normalize();
+        const beamStart = sunWorldPos.clone().add(dir.multiplyScalar(8.5)); // 태양 표면
+
+        const positions = mainEarth.sunBeamLine.geometry.attributes.position.array;
+        positions[0] = beamStart.x; positions[1] = beamStart.y; positions[2] = beamStart.z;
+        positions[3] = pinWorldPos.x; positions[4] = pinWorldPos.y; positions[5] = pinWorldPos.z;
+        mainEarth.sunBeamLine.geometry.attributes.position.needsUpdate = true;
+      }
+    }
+
+    // 8. 렌더 루프
     const clock = new THREE.Clock();
 
     function animate() {
@@ -669,18 +551,10 @@
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // 심우주 은하수 배경 돔 회전
+      // 배경 돔 미세 회전
       universeSkyMesh.rotation.y = time * 0.0003;
 
-      // 5,000개 별빛 깜빡임 및 크기 맥동
-      starGroups.forEach((layer, idx) => {
-        const pulse = Math.sin(time * layer.speed + idx * 1.7);
-        layer.mat.opacity = layer.baseOpacity * (0.8 + 0.25 * pulse);
-        layer.mat.size = layer.baseSize * (0.92 + 0.18 * pulse);
-        layer.mesh.rotation.y = time * (0.0006 + idx * 0.0003);
-      });
-
-      // 북극 상공 기준 반시계 방향(서→동) 공전
+      // 반시계 방향 공전
       if (isPlaying && !isAllSeasonsMode) {
         orbitAngle -= 0.1 * delta;
         if (orbitAngle < 0) orbitAngle += 2 * Math.PI;
@@ -688,14 +562,15 @@
       mainEarth.pivot.position.x = orbitRadius * Math.cos(orbitAngle);
       mainEarth.pivot.position.z = orbitRadius * Math.sin(orbitAngle);
 
-      // 지구 자전
-      const earthRotationSpeed = 0.6;
-      mainEarth.mesh.rotation.y += earthRotationSpeed * delta;
-      staticEarths.forEach(u => u.mesh.rotation.y += earthRotationSpeed * delta);
+      // 관측 핀이 항상 태양 쪽(남중 정오 시간대)을 마주보도록 정렬하여 고도 관찰 극대화
+      mainEarth.mesh.rotation.y = 0; 
+      staticEarths.forEach(u => u.mesh.rotation.y = 0);
 
-      // 태양 자전 (지구의 1/25 배속)
-      const sunRotationSpeed = earthRotationSpeed / 25;
-      sunMesh.rotation.y += sunRotationSpeed * delta;
+      // 태양 자전
+      sunMesh.rotation.y += 0.02 * delta;
+
+      // 실시간 남중고도 및 에너지 밀도 계산
+      updateSolarMetrics();
 
       controls.update();
       renderer.render(scene, activeCamera);
