@@ -12,7 +12,7 @@
     html, body {
       width: 100%;
       height: 100%;
-      background-color: #030712;
+      background-color: #020617;
       color: #ffffff;
       font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
       overflow: hidden;
@@ -99,14 +99,14 @@
       left: 6px;
       font-size: 12px;
       color: #f1f5f9;
-      background: rgba(15, 23, 42, 0.82);
-      backdrop-filter: blur(4px);
-      padding: 7px 11px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      padding: 8px 12px;
       border-radius: 6px;
-      border: 1px solid rgba(51, 65, 85, 0.7);
-      line-height: 1.45;
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      line-height: 1.5;
       max-width: 330px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.6);
       z-index: 5;
     }
     .label-header {
@@ -116,8 +116,21 @@
       gap: 8px;
       cursor: pointer;
     }
+    .header-title-box {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
     .label-content {
-      margin-top: 4px;
+      margin-top: 5px;
+      border-top: 1px solid #1e293b;
+      padding-top: 5px;
+    }
+    .creator-tag {
+      font-size: 10px;
+      color: #38bdf8;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
     .fold-btn {
       background: transparent;
@@ -163,7 +176,10 @@
   <div id="canvas-container">
     <div id="labels">
       <div class="label-header" onclick="toggleNotice()">
-        <b>🌏 계절의 변화 관찰 (북반구 기준)</b>
+        <div class="header-title-box">
+          <b>🌏 계절의 변화 관찰 (북반구 기준)</b>
+          <span class="creator-tag">✨ Made by AmazingGrace14</span>
+        </div>
         <button id="foldBtn" class="fold-btn">접기</button>
       </div>
       <div id="noticeBody" class="label-content">
@@ -216,7 +232,7 @@
     const foldBtn = document.getElementById('foldBtn');
 
     let isPlaying = true;
-    let orbitAngle = Math.PI / 2; // 여름(하지) 위치 시작
+    let orbitAngle = Math.PI / 2;
     let tiltDegree = 23.5;
     const orbitRadius = 46;
     let isOrtho = false;
@@ -238,7 +254,7 @@
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
-    // 2. Dual Camera (18도 망원 렌즈로 왜곡 0 유지)
+    // 2. Dual Camera (18도 망원)
     function getContainerSize() {
       const rect = container.getBoundingClientRect();
       const w = Math.max(rect.width, 1);
@@ -247,14 +263,14 @@
     }
 
     const initSize = getContainerSize();
-    const persCamera = new THREE.PerspectiveCamera(18, initSize.aspect, 5, 2000);
+    const persCamera = new THREE.PerspectiveCamera(18, initSize.aspect, 5, 2500);
     persCamera.position.set(0, 65, 175);
 
     const orthoFrustum = 38;
     const orthoCamera = new THREE.OrthographicCamera(
       -orthoFrustum * initSize.aspect, orthoFrustum * initSize.aspect,
       orthoFrustum, -orthoFrustum,
-      5, 2000
+      5, 2500
     );
     orthoCamera.position.set(0, 65, 175);
 
@@ -287,16 +303,62 @@
       controls.update();
     }
 
-    // 3. 우주 배경
-    const starGeo = new THREE.BufferGeometry();
-    const starCount = 1800;
-    const starPositions = [];
-    for (let i = 0; i < starCount * 3; i++) {
-      starPositions.push((Math.random() - 0.5) * 800);
+    // 3. 실제 별처럼 반짝이는 깊이감 있는 우주 별빛 시스템
+    function createStarTexture() {
+      const c = document.createElement('canvas');
+      c.width = 64;
+      c.height = 64;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 30);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      grad.addColorStop(0.18, 'rgba(225, 240, 255, 0.9)');
+      grad.addColorStop(0.45, 'rgba(160, 205, 255, 0.35)');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 64, 64);
+      return new THREE.CanvasTexture(c);
     }
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.9 });
-    scene.add(new THREE.Points(starGeo, starMat));
+
+    const starTexture = createStarTexture();
+    const starCount = 2200;
+    const starGeo = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+    const starColors = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      // 구형으로 균일하게 분포
+      const radius = 300 + Math.random() * 500;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      
+      starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      starPositions[i * 3 + 2] = radius * Math.cos(phi);
+
+      // 별의 실제 색상 스펙트럼 (청백색, 백색, 미세 황금색)
+      const colorType = Math.random();
+      if (colorType > 0.8) {
+        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.92; starColors[i * 3 + 2] = 0.75; // 황백색
+      } else if (colorType > 0.4) {
+        starColors[i * 3] = 0.95; starColors[i * 3 + 1] = 0.98; starColors[i * 3 + 2] = 1.0; // 순백색
+      } else {
+        starColors[i * 3] = 0.78; starColors[i * 3 + 1] = 0.88; starColors[i * 3 + 2] = 1.0; // 청백색
+      }
+    }
+
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+    const starMat = new THREE.PointsMaterial({
+      size: 2.2,
+      map: starTexture,
+      transparent: true,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const starPoints = new THREE.Points(starGeo, starMat);
+    scene.add(starPoints);
 
     // 4. 공전 궤도
     class OrbitCurve extends THREE.Curve {
@@ -321,7 +383,7 @@
     const orbitMesh = new THREE.Mesh(orbitGeo, orbitMat);
     scene.add(orbitMesh);
 
-    // 5. 태양 및 정밀 태양광 조명 시스템
+    // 5. 태양
     const textureLoader = new THREE.TextureLoader();
     const sunTexture = textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg');
     const sunGeo = new THREE.SphereGeometry(8.5, 64, 64);
@@ -345,10 +407,8 @@
     coronaSprite.scale.set(38, 38, 1);
     scene.add(coronaSprite);
 
-    // [조명 정밀화] 중심 점광원 + 명확한 낮/밤 경계를 만드는 앰비언트 설정
     const sunLight = new THREE.PointLight(0xffffff, 3.2, 550, 0.2);
     scene.add(sunLight);
-    // 그림자 영역이 너무 묻히지 않으면서도 남/북반구 조도 차이가 선명하게 드러나는 은은한 우주 배경광
     scene.add(new THREE.AmbientLight(0x1e293b, 0.45));
 
     // 6. 지구 단위 생성기
@@ -409,7 +469,7 @@
       nSprite.scale.set(2.8, 2.8, 1);
       tiltGroup.add(nSprite);
 
-      // 계절 텍스트 라벨 (북반구 기준 표시)
+      // 계절 텍스트 라벨
       if (labelText) {
         const cLabel = document.createElement('canvas');
         cLabel.width = 300;
@@ -437,9 +497,6 @@
     scene.add(mainEarth.pivot);
 
     // 사계절 고정 4개 지구
-    // 좌표계 정렬:
-    // 하지 (z = +orbitRadius): 자전축(z축 기울기)이 태양(중심)을 향해 북극이 비춤
-    // 동지 (z = -orbitRadius): 자전축이 태양 반대를 향해 남극·남반구가 집중 조명됨
     const fourSeasonsGroup = new THREE.Group();
     scene.add(fourSeasonsGroup);
     fourSeasonsGroup.visible = false;
@@ -459,8 +516,6 @@
       return unit;
     });
 
-    // 모든 지구의 자전축 방향을 항상 일정한 우주 공간(북극성 방향)으로 고정 기울임
-    // rotation.z로 기울여 z = +46(하지)에서는 북반구가 태양(0,0,0) 쪽으로, z = -46(동지)에서는 남반구가 태양 쪽으로 향함
     function applyAllTilts(deg) {
       const rad = -THREE.MathUtils.degToRad(deg);
       mainEarth.tiltGroup.rotation.z = rad;
@@ -541,6 +596,11 @@
       requestAnimationFrame(animate);
 
       const delta = clock.getDelta();
+      const time = clock.getElapsedTime();
+
+      // 별빛 반짝임(Twinkle) 및 미세 회전
+      starMat.size = 2.1 + Math.sin(time * 2.5) * 0.35;
+      starPoints.rotation.y = time * 0.002;
 
       // 북극 상공 기준 반시계 방향(서→동) 공전
       if (isPlaying && !isAllSeasonsMode) {
@@ -550,12 +610,12 @@
       mainEarth.pivot.position.x = orbitRadius * Math.cos(orbitAngle);
       mainEarth.pivot.position.z = orbitRadius * Math.sin(orbitAngle);
 
-      // 지구 자전 (서→동, 반시계)
+      // 지구 자전
       const earthRotationSpeed = 0.6;
       mainEarth.mesh.rotation.y += earthRotationSpeed * delta;
       staticEarths.forEach(u => u.mesh.rotation.y += earthRotationSpeed * delta);
 
-      // 태양 자전 (지구의 1/25 배속)
+      // 태양 자전
       const sunRotationSpeed = earthRotationSpeed / 25;
       sunMesh.rotation.y += sunRotationSpeed * delta;
 
