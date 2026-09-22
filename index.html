@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>정밀 지구본 기반 계절 변화 시뮬레이터</title>
+  <title>지구의 공전과 자전축의 기울기에 의한 계절의 변화</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -44,16 +44,17 @@
     #labels {
       position: absolute; top: 10px; left: 10px; font-size: 12px; color: #f1f5f9;
       background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(8px);
-      padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(51, 65, 85, 0.85);
-      line-height: 1.55; width: 330px; box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 5;
+      padding: 11px 15px; border-radius: 8px; border: 1px solid rgba(51, 65, 85, 0.85);
+      line-height: 1.55; width: 350px; box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 5;
     }
-    .label-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
-    .header-title-box { display: flex; flex-direction: column; gap: 2px; }
-    .label-content { margin-top: 6px; border-top: 1px solid #334155; padding-top: 6px; }
+    .label-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; cursor: pointer; }
+    .header-title-box { display: flex; flex-direction: column; gap: 3px; }
+    .main-title-text { font-size: 13px; font-weight: 700; color: #ffffff; line-height: 1.4; word-break: keep-all; }
+    .label-content { margin-top: 8px; border-top: 1px solid #334155; padding-top: 7px; }
     .creator-tag { font-size: 10.5px; color: #38bdf8; font-weight: 600; }
     .fold-btn {
       background: transparent; border: 1px solid #475569; color: #94a3b8;
-      font-size: 10.5px; padding: 2px 6px; border-radius: 4px;
+      font-size: 10.5px; padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
     }
     .notice-box {
       background: rgba(0, 0, 0, 0.38);
@@ -125,7 +126,7 @@
     <div id="labels">
       <div class="label-header" onclick="toggleNotice()">
         <div class="header-title-box">
-          <b>🌏 계절의 변화 (북반구 기준)</b>
+          <b class="main-title-text">🌏 지구의 공전과 자전축의 기울기에 의한 계절의 변화</b>
           <span class="creator-tag">✨ Made by AmazingGrace14</span>
         </div>
         <button id="foldBtn" class="fold-btn">접기</button>
