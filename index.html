@@ -158,13 +158,13 @@
   <div id="canvas-container">
     <div id="labels">
       <div class="label-header" onclick="toggleNotice()">
-        <b>🌏 계절의 변화 관찰</b>
+        <b>🌏 계절의 변화 관찰 (반시계 공전)</b>
         <button id="foldBtn" class="fold-btn">접기</button>
       </div>
       <div id="noticeBody" class="label-content">
         • 드래그: 3D 회전 | 휠: 확대·축소<br>
         • 시점: <span id="camModeBadge" class="badge badge-persp">원근(Persp)</span>
-        <span class="notice-text">※ 실제 크기·거리는 축척을 달리 표현함.</span>
+        <span class="notice-text">※ 북극 상공 기준 반시계 방향(서→동) 공전<br>※ 실제 크기·거리는 축척을 달리 표현함.</span>
       </div>
     </div>
   </div>
@@ -188,9 +188,9 @@
 
     <div class="ctrl-group">
       <button class="season-btn" onclick="moveToSeason(Math.PI / 2)">여름 (하지)</button>
+      <button class="season-btn" onclick="moveToSeason(0)">가을 (추분)</button>
       <button class="season-btn" onclick="moveToSeason(3 * Math.PI / 2)">겨울 (동지)</button>
       <button class="season-btn" onclick="moveToSeason(Math.PI)">봄 (춘분)</button>
-      <button class="season-btn" onclick="moveToSeason(0)">가을 (추분)</button>
       <button id="allSeasonsBtn" class="all-seasons-btn" onclick="toggleAllSeasons()">✨ 사계절 동시 보기</button>
     </div>
   </div>
@@ -207,7 +207,7 @@
     const foldBtn = document.getElementById('foldBtn');
 
     let isPlaying = true;
-    let orbitAngle = Math.PI / 2;
+    let orbitAngle = Math.PI / 2; // 여름(하지) 위치 시작
     let tiltDegree = 23.5;
     const orbitRadius = 46;
     let isOrtho = false;
@@ -220,7 +220,7 @@
       foldBtn.innerText = isNoticeFolded ? '펼치기' : '접기';
     };
 
-    // 1. Scene & Renderer 설정
+    // 1. Scene & Renderer
     const scene = new THREE.Scene();
     
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -229,7 +229,7 @@
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
-    // 2. 듀얼 카메라 (왜곡 0에 수렴하는 망원 18도)
+    // 2. Dual Camera
     function getContainerSize() {
       const rect = container.getBoundingClientRect();
       const w = Math.max(rect.width, 1);
@@ -278,7 +278,7 @@
       controls.update();
     }
 
-    // 3. 우주 배경 별빛
+    // 3. 우주 배경
     const starGeo = new THREE.BufferGeometry();
     const starCount = 1800;
     const starPositions = [];
@@ -289,7 +289,7 @@
     const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.9 });
     scene.add(new THREE.Points(starGeo, starMat));
 
-    // 4. 공전 궤도 튜브
+    // 4. 공전 궤도
     class OrbitCurve extends THREE.Curve {
       constructor(radius) {
         super();
@@ -340,7 +340,7 @@
     scene.add(sunLight);
     scene.add(new THREE.AmbientLight(0x2d3748, 0.65));
 
-    // 6. 지구 생성 팩토리 (메인 + 사계절 동시 비교용)
+    // 6. 지구 단위 생성기
     const earthMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
     const earthNormal = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
     const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
@@ -382,7 +382,7 @@
       const axis = new THREE.Mesh(axisGeo, axisMat);
       tiltGroup.add(axis);
 
-      // 북극 N 표식
+      // 북극 N 라벨
       const canvasN = document.createElement('canvas');
       canvasN.width = 64;
       canvasN.height = 64;
@@ -399,7 +399,6 @@
       tiltGroup.add(nSprite);
 
       // 계절 텍스트 라벨
-      let labelSprite = null;
       if (labelText) {
         const cLabel = document.createElement('canvas');
         cLabel.width = 256;
@@ -413,7 +412,7 @@
         ctxL.shadowBlur = 6;
         ctxL.fillText(labelText, 128, 32);
         const lTex = new THREE.CanvasTexture(cLabel);
-        labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, depthTest: false }));
+        const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, depthTest: false }));
         labelSprite.position.set(0, -earthRadius - 3.8, 0);
         labelSprite.scale.set(10, 2.5, 1);
         pivot.add(labelSprite);
@@ -426,16 +425,16 @@
     const mainEarth = createEarthUnit(null);
     scene.add(mainEarth.pivot);
 
-    // 사계절 고정 4개 지구
+    // 사계절 고정 4개 지구 (반시계 공전 순서: 춘분(π) -> 하지(π/2) -> 추분(0) -> 동지(3π/2))
     const fourSeasonsGroup = new THREE.Group();
     scene.add(fourSeasonsGroup);
     fourSeasonsGroup.visible = false;
 
     const seasonConfigs = [
       { angle: Math.PI / 2, label: "여름 (하지)" },
+      { angle: 0, label: "가을 (추분)" },
       { angle: 3 * Math.PI / 2, label: "겨울 (동지)" },
-      { angle: Math.PI, label: "봄 (춘분)" },
-      { angle: 0, label: "가을 (추분)" }
+      { angle: Math.PI, label: "봄 (춘분)" }
     ];
 
     const staticEarths = seasonConfigs.map(cfg => {
@@ -446,7 +445,7 @@
       return unit;
     });
 
-    // 모든 지구의 자전축 일괄 기울기 동기화
+    // 모든 지구의 자전축 일괄 기울기 동기화 (북반구가 하지 위치에서 태양을 향하도록 세팅)
     function applyAllTilts(deg) {
       const rad = -THREE.MathUtils.degToRad(deg);
       mainEarth.tiltGroup.rotation.z = rad;
@@ -528,15 +527,15 @@
 
       const delta = clock.getDelta();
 
-      // 공전 처리
+      // [핵심 교정] 북극 상공 기준 반시계 방향(서→동) 공전: 각도를 차감(-)하여 반시계 궤도 구현
       if (isPlaying && !isAllSeasonsMode) {
-        orbitAngle += 0.1 * delta;
-        if (orbitAngle > 2 * Math.PI) orbitAngle -= 2 * Math.PI;
+        orbitAngle -= 0.1 * delta;
+        if (orbitAngle < 0) orbitAngle += 2 * Math.PI;
       }
       mainEarth.pivot.position.x = orbitRadius * Math.cos(orbitAngle);
       mainEarth.pivot.position.z = orbitRadius * Math.sin(orbitAngle);
 
-      // 지구 자전
+      // 지구 자전 (서→동, 반시계 자전)
       const earthRotationSpeed = 0.6;
       mainEarth.mesh.rotation.y += earthRotationSpeed * delta;
       staticEarths.forEach(u => u.mesh.rotation.y += earthRotationSpeed * delta);
