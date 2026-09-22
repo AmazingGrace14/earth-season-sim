@@ -20,15 +20,15 @@
       flex: 0 0 65px; height: 65px; width: 100%;
       background: #0f172a; border-top: 1.5px solid #334155;
       display: flex; flex-direction: row; align-items: center; justify-content: center;
-      gap: 10px; padding: 0 15px; z-index: 10;
+      gap: 9px; padding: 0 15px; z-index: 10;
       box-shadow: 0 -4px 20px rgba(0,0,0,0.6); overflow-x: auto; white-space: nowrap;
     }
-    .ctrl-group { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; }
-    .divider { width: 1px; height: 28px; background-color: #334155; margin: 0 4px; }
-    input[type=range] { width: 130px; cursor: pointer; }
+    .ctrl-group { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+    .divider { width: 1px; height: 28px; background-color: #334155; margin: 0 3px; }
+    input[type=range] { width: 120px; cursor: pointer; }
     button {
-      background: #2563eb; color: white; border: none; padding: 7px 11px;
-      border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12.5px;
+      background: #2563eb; color: white; border: none; padding: 7px 10px;
+      border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;
       transition: all 0.2s ease; white-space: nowrap;
     }
     button:hover { background: #1d4ed8; transform: translateY(-1px); }
@@ -39,8 +39,12 @@
     .all-seasons-btn { background: #8b5cf6; }
     .all-seasons-btn:hover { background: #7c3aed; }
     .all-seasons-btn.active { background: #ec4899; box-shadow: 0 0 10px rgba(236, 72, 153, 0.6); }
+    .extra-btn { background: #0284c7; }
+    .extra-btn:hover { background: #0369a1; }
+    .line-toggle-btn { background: #d97706; }
+    .line-toggle-btn:hover { background: #b45309; }
 
-    /* 좌측 상단 안내창 (글자 크기 13px 통일) */
+    /* 좌측 상단 안내창 */
     #labels {
       position: absolute; top: 10px; left: 10px; font-size: 12px; color: #f1f5f9;
       background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(8px);
@@ -81,8 +85,14 @@
       line-height: 1.35;
       white-space: nowrap;
     }
+    .shortcut-text {
+      color: #94a3b8;
+      font-size: 10px;
+      margin-top: 5px;
+      display: block;
+    }
 
-    /* 우측 상단 태양의 남중 고도 & 태양 에너지 HUD 패널 (글자 크기 13px 통일) */
+    /* 우측 상단 태양의 남중 고도 & 태양 에너지 HUD 패널 */
     #solarHUD {
       position: absolute; top: 10px; right: 10px; font-size: 12px; color: #f8fafc;
       background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
@@ -140,12 +150,14 @@
       </div>
       <div id="noticeBody" class="label-content">
         • 드래그: 3D 시점 회전 | 휠: 확대·축소<br>
-        • 초록선: 자전축 (N: 북극) | 빨간선: 적도면
+        • 초록선: 자전축 (N: 북극) | 빨간선: 적도면<br>
+        • 주황선: 우리나라 위도 (37.5°N)
         <div class="notice-box">
           <div class="notice-item">• 사계절(봄·여름·가을·겨울) 명칭은 '북반구' 기준</div>
           <div class="notice-item">• 북극 상공 기준 반시계 방향(서→동) 공전</div>
           <div class="notice-item">• 실제 태양·지구의 크기 및 거리는 축척을 달리하여 표현</div>
         </div>
+        <span class="shortcut-text">⌨ 단축키: Space(정지/재생) | 1~4(봄·여름·가을·겨울) | 0(0°) | F(전체화면)</span>
       </div>
     </div>
 
@@ -174,7 +186,7 @@
 
   <div id="controls">
     <div class="ctrl-group">
-      <label for="tiltSlider">자전축 기울기: <strong id="tiltVal" style="color: #38bdf8;">23.5</strong>°</label>
+      <label for="tiltSlider">자전축: <strong id="tiltVal" style="color: #38bdf8;">23.5</strong>°</label>
       <input type="range" id="tiltSlider" min="0" max="90" step="0.5" value="23.5">
       <button onclick="setTilt(0)">0° (직각)</button>
       <button onclick="setTilt(23.5)">23.5° (실제)</button>
@@ -186,16 +198,19 @@
     <div class="ctrl-group">
       <button id="camModeBtn" class="toggle-btn" onclick="toggleCameraMode()">직교(Ortho) 전환</button>
       <button id="playBtn" onclick="togglePlay()">공전 일시정지</button>
+      <button id="koreaLineBtn" class="line-toggle-btn" onclick="toggleKoreaLine()">위도선(37.5°N) 끄기</button>
     </div>
 
     <div class="divider"></div>
 
+    <!-- [순서 교정] 춘하추동 (봄 -> 여름 -> 가을 -> 겨울) 순서 배치 -->
     <div class="ctrl-group">
+      <button class="season-btn" onclick="moveToSeason(Math.PI)">봄 (춘분)</button>
       <button class="season-btn" onclick="moveToSeason(Math.PI / 2)">여름 (하지)</button>
       <button class="season-btn" onclick="moveToSeason(0)">가을 (추분)</button>
       <button class="season-btn" onclick="moveToSeason(3 * Math.PI / 2)">겨울 (동지)</button>
-      <button class="season-btn" onclick="moveToSeason(Math.PI)">봄 (춘분)</button>
       <button id="allSeasonsBtn" class="all-seasons-btn" onclick="toggleAllSeasons()">✨ 사계절 동시 보기</button>
+      <button id="fsBtn" class="extra-btn" onclick="toggleFullScreen()">⛶ 전체화면</button>
     </div>
   </div>
 
@@ -208,6 +223,8 @@
     const allSeasonsBtn = document.getElementById('allSeasonsBtn');
     const noticeBody = document.getElementById('noticeBody');
     const foldBtn = document.getElementById('foldBtn');
+    const koreaLineBtn = document.getElementById('koreaLineBtn');
+    const fsBtn = document.getElementById('fsBtn');
 
     // HUD 요소
     const altitudeVal = document.getElementById('altitudeVal');
@@ -223,6 +240,7 @@
     let isOrtho = false;
     let isNoticeFolded = false;
     let isAllSeasonsMode = false;
+    let showKoreaLine = true;
 
     window.toggleNotice = function() {
       isNoticeFolded = !isNoticeFolded;
@@ -387,13 +405,15 @@
     const ambientLight = new THREE.AmbientLight(0x384556, 0.78);
     scene.add(ambientLight);
 
-    // 6. 지구 단위 생성기
+    // 6. 지구 단위 생성기 (우리나라 위도선 포함)
     const earthMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
     const earthNormal = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
     const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
 
     const earthRadius = 5.2;
     const axisLength = 18.0;
+
+    const koreaLineObjects = [];
 
     function createEarthUnit(labelText) {
       const pivot = new THREE.Group();
@@ -408,7 +428,7 @@
       const mesh = new THREE.Mesh(new THREE.SphereGeometry(earthRadius, 128, 128), earthMat);
       tiltGroup.add(mesh);
 
-      // 적도선
+      // 적도선 (빨간 실선)
       const eqCurve = new THREE.EllipseCurve(0, 0, earthRadius + 0.04, earthRadius + 0.04, 0, 2 * Math.PI, false, 0);
       const equator = new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(eqCurve.getPoints(96)),
@@ -416,6 +436,21 @@
       );
       equator.rotation.x = Math.PI / 2;
       tiltGroup.add(equator);
+
+      // 대한민국 중위도선 (37.5°N, 주황색 선)
+      const lat375Rad = THREE.MathUtils.degToRad(37.5);
+      const latRadius = (earthRadius + 0.045) * Math.cos(lat375Rad);
+      const latHeight = (earthRadius + 0.045) * Math.sin(lat375Rad);
+
+      const koreaCurve = new THREE.EllipseCurve(0, 0, latRadius, latRadius, 0, 2 * Math.PI, false, 0);
+      const koreaLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(koreaCurve.getPoints(96)),
+        new THREE.LineBasicMaterial({ color: 0xf97316, linewidth: 2, transparent: true, opacity: 0.9 })
+      );
+      koreaLine.rotation.x = Math.PI / 2;
+      koreaLine.position.y = latHeight;
+      tiltGroup.add(koreaLine);
+      koreaLineObjects.push(koreaLine);
 
       // 자전축
       const axis = new THREE.Mesh(
@@ -462,10 +497,10 @@
     fourSeasonsGroup.visible = false;
 
     const seasonConfigs = [
+      { angle: Math.PI, label: "봄 (춘분)" },
       { angle: Math.PI / 2, label: "여름 (하지)" },
       { angle: 0, label: "가을 (추분)" },
-      { angle: 3 * Math.PI / 2, label: "겨울 (동지)" },
-      { angle: Math.PI, label: "봄 (춘분)" }
+      { angle: 3 * Math.PI / 2, label: "겨울 (동지)" }
     ];
 
     const staticEarths = seasonConfigs.map(cfg => {
@@ -542,6 +577,61 @@
       updateCameraSettings();
     };
 
+    // 전체화면 토글
+    window.toggleFullScreen = function() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.log(`전체화면 오류: ${err.message}`);
+        });
+        fsBtn.innerText = "⛶ 창모드 복귀";
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+          fsBtn.innerText = "⛶ 전체화면";
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        fsBtn.innerText = "⛶ 전체화면";
+      } else {
+        fsBtn.innerText = "⛶ 창모드 복귀";
+      }
+      setTimeout(resizeRenderer, 100);
+    });
+
+    // 대한민국 위도선 (37.5°N) 켜기/끄기
+    window.toggleKoreaLine = function() {
+      showKoreaLine = !showKoreaLine;
+      koreaLineObjects.forEach(obj => obj.visible = showKoreaLine);
+      koreaLineBtn.innerText = showKoreaLine ? "위도선(37.5°N) 끄기" : "위도선(37.5°N) 켜기";
+    };
+
+    // 키보드 단축키 등록 (1: 봄, 2: 여름, 3: 가을, 4: 겨울)
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === '1') {
+        moveToSeason(Math.PI); // 봄
+      } else if (e.key === '2') {
+        moveToSeason(Math.PI / 2); // 여름
+      } else if (e.key === '3') {
+        moveToSeason(0); // 가을
+      } else if (e.key === '4') {
+        moveToSeason(3 * Math.PI / 2); // 겨울
+      } else if (e.key === '0') {
+        setTilt(0);
+      } else if (e.key.toLowerCase() === 'a') {
+        toggleAllSeasons();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullScreen();
+      }
+    });
+
     // 실시간 태양의 남중 고도 및 에너지 밀도 HUD 계산
     function updateSolarMetrics() {
       const currentDeclination = tiltDegree * Math.sin(orbitAngle);
@@ -595,7 +685,7 @@
         layer.mesh.rotation.y = time * (0.0005 + idx * 0.0002);
       });
 
-      // 반시계 방향 공전
+      // 반시계 방향 공전 (봄 -> 여름 -> 가을 -> 겨울 순서로 진행)
       if (isPlaying && !isAllSeasonsMode) {
         orbitAngle -= 0.1 * delta;
         if (orbitAngle < 0) orbitAngle += 2 * Math.PI;
