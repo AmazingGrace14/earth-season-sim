@@ -253,7 +253,7 @@
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
-    // 2. Dual Camera (18도 망원)
+    // 2. Dual Camera (18도 망원 화각)
     function getContainerSize() {
       const rect = container.getBoundingClientRect();
       const w = Math.max(rect.width, 1);
@@ -262,14 +262,14 @@
     }
 
     const initSize = getContainerSize();
-    const persCamera = new THREE.PerspectiveCamera(18, initSize.aspect, 5, 4000);
+    const persCamera = new THREE.PerspectiveCamera(18, initSize.aspect, 5, 4500);
     persCamera.position.set(0, 65, 175);
 
     const orthoFrustum = 38;
     const orthoCamera = new THREE.OrthographicCamera(
       -orthoFrustum * initSize.aspect, orthoFrustum * initSize.aspect,
       orthoFrustum, -orthoFrustum,
-      5, 4000
+      5, 4500
     );
     orthoCamera.position.set(0, 65, 175);
 
@@ -303,32 +303,29 @@
     }
 
     // =========================================================================
-    // 3. [초거대 심우주 배경] 검정 우주를 감싸는 은하수 및 성운 스카이돔
+    // 3. 은하수 스카이돔 + 개수 확대된(5,000개) 분광형 별빛 시스템
     // =========================================================================
 
-    // 3-1. 캔버스로 동적 생성하는 파노라마 은하수/성운 텍스처
+    // 3-1. 은하수 배경 돔
     function createMilkyWayTexture() {
       const c = document.createElement('canvas');
       c.width = 2048;
       c.height = 1024;
       const ctx = c.getContext('2d');
 
-      // 짙은 심우주 검정 바탕
       ctx.fillStyle = '#02040a';
       ctx.fillRect(0, 0, c.width, c.height);
 
-      // 대각선 은하수 띠 (Milky Way Stream)
       ctx.save();
       ctx.translate(c.width / 2, c.height / 2);
       ctx.rotate(-Math.PI / 7);
 
-      // 성운 가스 구름 브러시 렌더링
       const clouds = [
-        { color: 'rgba(30, 58, 138, 0.45)', w: 1600, h: 260, y: 0 },    // 딥 인디고
-        { color: 'rgba(56, 189, 248, 0.28)', w: 1200, h: 180, y: -25 },  // 시안 성운
-        { color: 'rgba(147, 51, 234, 0.32)', w: 1400, h: 220, y: 20 },   // 바이올렛 성운
-        { color: 'rgba(236, 72, 153, 0.22)', w: 900,  h: 150, y: -10 },  // 마젠타 가스
-        { color: 'rgba(255, 255, 255, 0.25)', w: 1500, h: 90,  y: 0 }     // 은하 중심 백색 별빛 코어
+        { color: 'rgba(30, 58, 138, 0.45)', w: 1600, h: 260, y: 0 },
+        { color: 'rgba(56, 189, 248, 0.28)', w: 1200, h: 180, y: -25 },
+        { color: 'rgba(147, 51, 234, 0.32)', w: 1400, h: 220, y: 20 },
+        { color: 'rgba(236, 72, 153, 0.22)', w: 900,  h: 150, y: -10 },
+        { color: 'rgba(255, 255, 255, 0.25)', w: 1500, h: 90,  y: 0 }
       ];
 
       clouds.forEach(cl => {
@@ -342,7 +339,6 @@
         ctx.fill();
       });
 
-      // 은하수 띠 내부의 미세 성간 먼지 및 빽빽한 별무리
       for (let i = 0; i < 4000; i++) {
         const x = (Math.random() - 0.5) * 1700;
         const y = (Math.random() - 0.5) * 220 + (Math.random() - 0.5) * 80;
@@ -356,16 +352,16 @@
       return new THREE.CanvasTexture(c);
     }
 
-    const universeSkyGeo = new THREE.SphereGeometry(1400, 48, 48);
+    const universeSkyGeo = new THREE.SphereGeometry(1500, 48, 48);
     const universeSkyMat = new THREE.MeshBasicMaterial({
       map: createMilkyWayTexture(),
-      side: THREE.BackSide, // 안쪽을 비추는 돔 형태
+      side: THREE.BackSide,
       depthWrite: false
     });
     const universeSkyMesh = new THREE.Mesh(universeSkyGeo, universeSkyMat);
     scene.add(universeSkyMesh);
 
-    // 3-2. 전천(全天) 분광형 등급별 별빛 시스템
+    // 3-2. 별빛 시스템 (총 5,000개로 대폭 확장)
     function createGlowStarTexture() {
       const c = document.createElement('canvas');
       c.width = 64;
@@ -391,11 +387,12 @@
       new THREE.Color(0xffb896)  // M 적색
     ];
 
+    // 레이어별 개수 대폭 확대
     const starLayers = [
-      { count: 1500, size: 2.0, opacity: 0.75, speed: 2.5 },
-      { count: 650,  size: 3.4, opacity: 0.85, speed: 3.8 },
-      { count: 200,  size: 5.5, opacity: 0.95, speed: 5.0 },
-      { count: 50,   size: 8.0, opacity: 1.0,  speed: 6.2 }
+      { count: 3200, size: 2.0, opacity: 0.75, speed: 2.5 }, // 잔잔한 배경 별무리
+      { count: 1300, size: 3.4, opacity: 0.85, speed: 3.8 }, // 선명한 2~3등성
+      { count: 400,  size: 5.5, opacity: 0.95, speed: 5.0 }, // 크고 밝은 1등성
+      { count: 100,  size: 8.0, opacity: 1.0,  speed: 6.2 }  // 찬란한 특급 보석 별
     ];
 
     const starGroups = [];
@@ -406,7 +403,7 @@
       const col = new Float32Array(layer.count * 3);
 
       for (let i = 0; i < layer.count; i++) {
-        const r = 400 + Math.random() * 600;
+        const r = 400 + Math.random() * 650;
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
@@ -464,7 +461,7 @@
     scene.add(orbitMesh);
 
     // =========================================================================
-    // 5. 태양 및 광원
+    // 5. 태양 및 광원 (코로나 제거로 눈부심 방지 및 관찰 집중도 극대화)
     // =========================================================================
     const textureLoader = new THREE.TextureLoader();
     const sunTexture = textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg');
@@ -473,21 +470,7 @@
     const sunMesh = new THREE.Mesh(sunGeo, sunMat);
     scene.add(sunMesh);
 
-    const canvasCorona = document.createElement('canvas');
-    canvasCorona.width = 128;
-    canvasCorona.height = 128;
-    const ctxCorona = canvasCorona.getContext('2d');
-    const grad = ctxCorona.createRadialGradient(64, 64, 18, 64, 64, 64);
-    grad.addColorStop(0, 'rgba(255, 235, 130, 1)');
-    grad.addColorStop(0.35, 'rgba(255, 140, 20, 0.65)');
-    grad.addColorStop(1, 'rgba(255, 60, 0, 0)');
-    ctxCorona.fillStyle = grad;
-    ctxCorona.fillRect(0, 0, 128, 128);
-    const coronaTex = new THREE.CanvasTexture(canvasCorona);
-    const coronaMat = new THREE.SpriteMaterial({ map: coronaTex, color: 0xffaa33, blending: THREE.AdditiveBlending, depthWrite: false });
-    const coronaSprite = new THREE.Sprite(coronaMat);
-    coronaSprite.scale.set(38, 38, 1);
-    scene.add(coronaSprite);
+    // [수정] 눈부심을 유발하던 외부 코로나 스프라이트(coronaSprite) 완전 제거
 
     const sunLight = new THREE.PointLight(0xffffff, 3.2, 550, 0.2);
     scene.add(sunLight);
@@ -684,10 +667,10 @@
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // [심우주 은하수 배경 돔의 매우 느리고 웅장한 회전]
+      // 심우주 은하수 배경 돔 회전
       universeSkyMesh.rotation.y = time * 0.0003;
 
-      // [별빛 깜빡임 및 크기 맥동]
+      // 5,000개 별빛 깜빡임 및 크기 맥동
       starGroups.forEach((layer, idx) => {
         const pulse = Math.sin(time * layer.speed + idx * 1.7);
         layer.mat.opacity = layer.baseOpacity * (0.8 + 0.25 * pulse);
