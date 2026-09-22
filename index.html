@@ -92,19 +92,20 @@
       box-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
     }
 
+    /* 좌측 상단 밀착 안내창 */
     #labels {
       position: absolute;
       top: 6px;
       left: 6px;
       font-size: 12px;
       color: #f1f5f9;
-      background: rgba(15, 23, 42, 0.78);
+      background: rgba(15, 23, 42, 0.82);
       backdrop-filter: blur(4px);
-      padding: 7px 10px;
+      padding: 7px 11px;
       border-radius: 6px;
       border: 1px solid rgba(51, 65, 85, 0.7);
       line-height: 1.45;
-      max-width: 320px;
+      max-width: 330px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
       z-index: 5;
     }
@@ -139,6 +140,10 @@
       display: block;
       line-height: 1.35;
     }
+    .notice-highlight {
+      color: #38bdf8;
+      font-weight: bold;
+    }
     .badge {
       display: inline-block;
       padding: 1px 5px;
@@ -158,13 +163,17 @@
   <div id="canvas-container">
     <div id="labels">
       <div class="label-header" onclick="toggleNotice()">
-        <b>🌏 계절의 변화 관찰 (반시계 공전)</b>
+        <b>🌏 계절의 변화 관찰 (북반구 기준)</b>
         <button id="foldBtn" class="fold-btn">접기</button>
       </div>
       <div id="noticeBody" class="label-content">
         • 드래그: 3D 회전 | 휠: 확대·축소<br>
         • 시점: <span id="camModeBadge" class="badge badge-persp">원근(Persp)</span>
-        <span class="notice-text">※ 북극 상공 기준 반시계 방향(서→동) 공전<br>※ 실제 크기·거리는 축척을 달리 표현함.</span>
+        <span class="notice-text">
+          • <span class="notice-highlight">사계절 명칭은 '북반구' 기준</span>입니다.<br>
+          • 북극 상공 기준 반시계 방향(서→동) 공전<br>
+          ※ 실제 크기·거리는 축척을 달리 표현함.
+        </span>
       </div>
     </div>
   </div>
@@ -229,7 +238,7 @@
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
-    // 2. Dual Camera
+    // 2. Dual Camera (18도 망원 렌즈로 왜곡 0 유지)
     function getContainerSize() {
       const rect = container.getBoundingClientRect();
       const w = Math.max(rect.width, 1);
@@ -312,7 +321,7 @@
     const orbitMesh = new THREE.Mesh(orbitGeo, orbitMat);
     scene.add(orbitMesh);
 
-    // 5. 태양
+    // 5. 태양 및 정밀 태양광 조명 시스템
     const textureLoader = new THREE.TextureLoader();
     const sunTexture = textureLoader.load('https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg');
     const sunGeo = new THREE.SphereGeometry(8.5, 64, 64);
@@ -336,9 +345,11 @@
     coronaSprite.scale.set(38, 38, 1);
     scene.add(coronaSprite);
 
-    const sunLight = new THREE.PointLight(0xffffff, 2.7, 500, 0.3);
+    // [조명 정밀화] 중심 점광원 + 명확한 낮/밤 경계를 만드는 앰비언트 설정
+    const sunLight = new THREE.PointLight(0xffffff, 3.2, 550, 0.2);
     scene.add(sunLight);
-    scene.add(new THREE.AmbientLight(0x2d3748, 0.65));
+    // 그림자 영역이 너무 묻히지 않으면서도 남/북반구 조도 차이가 선명하게 드러나는 은은한 우주 배경광
+    scene.add(new THREE.AmbientLight(0x1e293b, 0.45));
 
     // 6. 지구 단위 생성기
     const earthMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
@@ -358,8 +369,8 @@
         map: earthMap,
         normalMap: earthNormal,
         specularMap: earthSpecular,
-        specular: new THREE.Color(0x333333),
-        shininess: 18,
+        specular: new THREE.Color(0x222222),
+        shininess: 14,
         depthTest: true,
         depthWrite: true
       });
@@ -398,23 +409,23 @@
       nSprite.scale.set(2.8, 2.8, 1);
       tiltGroup.add(nSprite);
 
-      // 계절 텍스트 라벨
+      // 계절 텍스트 라벨 (북반구 기준 표시)
       if (labelText) {
         const cLabel = document.createElement('canvas');
-        cLabel.width = 256;
-        cLabel.height = 64;
+        cLabel.width = 300;
+        cLabel.height = 70;
         const ctxL = cLabel.getContext('2d');
         ctxL.fillStyle = '#f8fafc';
-        ctxL.font = 'bold 36px sans-serif';
+        ctxL.font = 'bold 32px sans-serif';
         ctxL.textAlign = 'center';
         ctxL.textBaseline = 'middle';
         ctxL.shadowColor = '#000000';
         ctxL.shadowBlur = 6;
-        ctxL.fillText(labelText, 128, 32);
+        ctxL.fillText(labelText, 150, 35);
         const lTex = new THREE.CanvasTexture(cLabel);
         const labelSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, depthTest: false }));
         labelSprite.position.set(0, -earthRadius - 3.8, 0);
-        labelSprite.scale.set(10, 2.5, 1);
+        labelSprite.scale.set(11, 2.6, 1);
         pivot.add(labelSprite);
       }
 
@@ -425,7 +436,10 @@
     const mainEarth = createEarthUnit(null);
     scene.add(mainEarth.pivot);
 
-    // 사계절 고정 4개 지구 (반시계 공전 순서: 춘분(π) -> 하지(π/2) -> 추분(0) -> 동지(3π/2))
+    // 사계절 고정 4개 지구
+    // 좌표계 정렬:
+    // 하지 (z = +orbitRadius): 자전축(z축 기울기)이 태양(중심)을 향해 북극이 비춤
+    // 동지 (z = -orbitRadius): 자전축이 태양 반대를 향해 남극·남반구가 집중 조명됨
     const fourSeasonsGroup = new THREE.Group();
     scene.add(fourSeasonsGroup);
     fourSeasonsGroup.visible = false;
@@ -445,7 +459,8 @@
       return unit;
     });
 
-    // 모든 지구의 자전축 일괄 기울기 동기화 (북반구가 하지 위치에서 태양을 향하도록 세팅)
+    // 모든 지구의 자전축 방향을 항상 일정한 우주 공간(북극성 방향)으로 고정 기울임
+    // rotation.z로 기울여 z = +46(하지)에서는 북반구가 태양(0,0,0) 쪽으로, z = -46(동지)에서는 남반구가 태양 쪽으로 향함
     function applyAllTilts(deg) {
       const rad = -THREE.MathUtils.degToRad(deg);
       mainEarth.tiltGroup.rotation.z = rad;
@@ -527,7 +542,7 @@
 
       const delta = clock.getDelta();
 
-      // [핵심 교정] 북극 상공 기준 반시계 방향(서→동) 공전: 각도를 차감(-)하여 반시계 궤도 구현
+      // 북극 상공 기준 반시계 방향(서→동) 공전
       if (isPlaying && !isAllSeasonsMode) {
         orbitAngle -= 0.1 * delta;
         if (orbitAngle < 0) orbitAngle += 2 * Math.PI;
@@ -535,7 +550,7 @@
       mainEarth.pivot.position.x = orbitRadius * Math.cos(orbitAngle);
       mainEarth.pivot.position.z = orbitRadius * Math.sin(orbitAngle);
 
-      // 지구 자전 (서→동, 반시계 자전)
+      // 지구 자전 (서→동, 반시계)
       const earthRotationSpeed = 0.6;
       mainEarth.mesh.rotation.y += earthRotationSpeed * delta;
       staticEarths.forEach(u => u.mesh.rotation.y += earthRotationSpeed * delta);
