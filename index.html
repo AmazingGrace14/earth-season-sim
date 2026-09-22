@@ -191,7 +191,6 @@
       <button class="season-btn" onclick="moveToSeason(3 * Math.PI / 2)">겨울 (동지)</button>
       <button class="season-btn" onclick="moveToSeason(Math.PI)">봄 (춘분)</button>
       <button class="season-btn" onclick="moveToSeason(0)">가을 (추분)</button>
-      <!-- 사계절 동시 보기 버튼 -->
       <button id="allSeasonsBtn" class="all-seasons-btn" onclick="toggleAllSeasons()">✨ 사계절 동시 보기</button>
     </div>
   </div>
@@ -221,7 +220,7 @@
       foldBtn.innerText = isNoticeFolded ? '펼치기' : '접기';
     };
 
-    // 1. Scene & Renderer
+    // 1. Scene & Renderer 설정
     const scene = new THREE.Scene();
     
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -230,7 +229,7 @@
     renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
-    // 2. Dual Camera
+    // 2. 듀얼 카메라 (왜곡 0에 수렴하는 망원 18도)
     function getContainerSize() {
       const rect = container.getBoundingClientRect();
       const w = Math.max(rect.width, 1);
@@ -279,7 +278,7 @@
       controls.update();
     }
 
-    // 3. 별빛 배경
+    // 3. 우주 배경 별빛
     const starGeo = new THREE.BufferGeometry();
     const starCount = 1800;
     const starPositions = [];
@@ -290,7 +289,7 @@
     const starMat = new THREE.PointsMaterial({ color: 0x94a3b8, size: 0.9 });
     scene.add(new THREE.Points(starGeo, starMat));
 
-    // 4. 공전 궤도
+    // 4. 공전 궤도 튜브
     class OrbitCurve extends THREE.Curve {
       constructor(radius) {
         super();
@@ -341,7 +340,7 @@
     scene.add(sunLight);
     scene.add(new THREE.AmbientLight(0x2d3748, 0.65));
 
-    // 6. 지구 생성 팩토리 (메인 지구 + 4계절 고정 지구용 공통 함수)
+    // 6. 지구 생성 팩토리 (메인 + 사계절 동시 비교용)
     const earthMap = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg');
     const earthNormal = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg');
     const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg');
@@ -383,7 +382,7 @@
       const axis = new THREE.Mesh(axisGeo, axisMat);
       tiltGroup.add(axis);
 
-      // 북극 N 라벨
+      // 북극 N 표식
       const canvasN = document.createElement('canvas');
       canvasN.width = 64;
       canvasN.height = 64;
@@ -399,7 +398,7 @@
       nSprite.scale.set(2.8, 2.8, 1);
       tiltGroup.add(nSprite);
 
-      // 계절 텍스트 라벨 (사계절 동시 보기용)
+      // 계절 텍스트 라벨
       let labelSprite = null;
       if (labelText) {
         const cLabel = document.createElement('canvas');
@@ -423,14 +422,14 @@
       return { pivot, tiltGroup, mesh };
     }
 
-    // 메인 회전 지구
+    // 메인 공전 지구
     const mainEarth = createEarthUnit(null);
     scene.add(mainEarth.pivot);
 
-    // 사계절 고정 4개 지구 그룹
+    // 사계절 고정 4개 지구
     const fourSeasonsGroup = new THREE.Group();
     scene.add(fourSeasonsGroup);
-    fourSeasonsGroup.visible = false; // 기본은 숨김
+    fourSeasonsGroup.visible = false;
 
     const seasonConfigs = [
       { angle: Math.PI / 2, label: "여름 (하지)" },
@@ -447,7 +446,7 @@
       return unit;
     });
 
-    // 모든 지구 자전축 기울기 일괄 적용
+    // 모든 지구의 자전축 일괄 기울기 동기화
     function applyAllTilts(deg) {
       const rad = -THREE.MathUtils.degToRad(deg);
       mainEarth.tiltGroup.rotation.z = rad;
@@ -455,7 +454,7 @@
     }
     applyAllTilts(tiltDegree);
 
-    // 컨트롤 이벤트
+    // UI 이벤트 리스너
     tiltSlider.addEventListener('input', (e) => {
       tiltDegree = parseFloat(e.target.value);
       tiltVal.innerText = tiltDegree;
@@ -471,7 +470,6 @@
 
     window.togglePlay = function() {
       if (isAllSeasonsMode) {
-        // 사계절 모드 해제 후 단일 재생으로 전환
         toggleAllSeasons();
       }
       isPlaying = !isPlaying;
@@ -480,12 +478,11 @@
 
     window.moveToSeason = function(angle) {
       if (isAllSeasonsMode) {
-        toggleAllSeasons(); // 단일 모드로 복귀
+        toggleAllSeasons();
       }
       orbitAngle = angle;
     };
 
-    // 사계절 동시 보기 토글
     window.toggleAllSeasons = function() {
       isAllSeasonsMode = !isAllSeasonsMode;
       if (isAllSeasonsMode) {
@@ -531,7 +528,7 @@
 
       const delta = clock.getDelta();
 
-      // 공전 (단일 지구 모드일 때만 실행)
+      // 공전 처리
       if (isPlaying && !isAllSeasonsMode) {
         orbitAngle += 0.1 * delta;
         if (orbitAngle > 2 * Math.PI) orbitAngle -= 2 * Math.PI;
@@ -539,12 +536,12 @@
       mainEarth.pivot.position.x = orbitRadius * Math.cos(orbitAngle);
       mainEarth.pivot.position.z = orbitRadius * Math.sin(orbitAngle);
 
-      // 자전 속도 (실제 천문 관측 비율)
+      // 지구 자전
       const earthRotationSpeed = 0.6;
       mainEarth.mesh.rotation.y += earthRotationSpeed * delta;
       staticEarths.forEach(u => u.mesh.rotation.y += earthRotationSpeed * delta);
 
-      // 태양 자전
+      // 태양 자전 (지구의 1/25 배속)
       const sunRotationSpeed = earthRotationSpeed / 25;
       sunMesh.rotation.y += sunRotationSpeed * delta;
 
